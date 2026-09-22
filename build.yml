@@ -1,0 +1,28 @@
+name: Build Windows portable
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    tags: ['v*']
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Publish portable
+        run: dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=None -o dist/win-x64
+      - name: Checksum
+        shell: pwsh
+        run: |
+          $hash = (Get-FileHash dist/win-x64/SchoolScope.exe -Algorithm SHA256).Hash
+          "$hash  SchoolScope.exe" | Set-Content dist/win-x64/SHA256SUMS.txt
+          Copy-Item README.md dist/win-x64/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SchoolScope-win-x64
+          path: dist/win-x64/
